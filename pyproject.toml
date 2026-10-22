@@ -1,0 +1,51 @@
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "quasar_cli"
+version = "0.1.0"
+description = "CLI interface of the QUASAR framework"
+readme = "README.md"
+requires-python = ">=3.12"
+
+authors = [
+    {name = "Liam", email = "liam_deburca@me.com"}
+]
+keywords = ["quasar", "spectral", "models", "emission-lines"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "click >= 8.0",
+    "quasar-decrypt",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-cov",
+    "black",
+    "isort",
+]
+
+[project.scripts]
+quasar-cli = "quasar_cli.cli.main:cli"
+
+[project.urls]
+Repository = "https://github.com/liamdeburca/quasar-cli"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 79
+
+[lint.pyupgrade]
+keep-runtime-typing = true
