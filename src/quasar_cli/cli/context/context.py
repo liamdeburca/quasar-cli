@@ -1,5 +1,3 @@
-__all__ = ["_Ctx", "_describe_context"]
-
 import pickle
 from dataclasses import dataclass
 from pathlib import Path
@@ -81,13 +79,17 @@ class _Ctx:
             case "output_dir":
                 return (self._path / "output_dir.pkl").exists()
             case "spectra":
-                return self._spectra is not None
+                return (self.spectra is not None) \
+                    and self.spectra.get_length(self._output_dir)
             case "error_results":
-                return self._error_results is not None
+                return (self.error_results is not None) \
+                    and self.error_results.get_length(self._output_dir)
             case "analysers":
-                return self._analysers is not None
+                return (self.analysers is not None) \
+                    and self.analysers.get_length(self._output_dir)
             case "results":
-                return self._results is not None
+                return (self.results is not None) \
+                    and self.results.get_length(self._output_dir)
         return False
 
     def remove(self, item: str) -> None:
@@ -121,7 +123,7 @@ class _Ctx:
     @property
     def config(self) -> Info:
         if self._config is not None:
-            return self._config        
+            return self._config
         self._config = Info.from_json(self._path / "config.json")
         return self._config
 
@@ -163,7 +165,8 @@ class _Ctx:
     def linelist(self) -> None:
         if self._linelist is None or "linelist" not in self._has_changed:
             return
-        self._linelist.to_csv(self.path / "linelist.csv", index=False)
+
+        self._linelist.to_csv(self.path / "linelist.csv")
         self._linelist = None
         self._has_changed.remove("linelist")
 
@@ -226,8 +229,8 @@ class _Ctx:
     ###
 
     @property
-    def spectra(self) -> LazySpectrumDict:
-        if self._spectra is None:
+    def spectra(self) -> LazySpectrumDict | None:
+        if (self.output_dir is not None) and self._spectra is None:
             self._spectra = LazySpectrumDict(self.output_dir, self.config)
         return self._spectra
 
@@ -241,7 +244,7 @@ class _Ctx:
 
     @property
     def error_results(self) -> LazyErrorResultDict:
-        if self._error_results is None:
+        if (self.output_dir is not None) and self._error_results is None:
             self._error_results = LazyErrorResultDict(self.output_dir, self.config)
         return self._error_results
 
@@ -254,10 +257,11 @@ class _Ctx:
     ###
 
     @property
-    def analysers(self) -> LazyAnalyserDict:
-        if self._analysers is None:
+    def analysers(self) -> LazyAnalyserDict | None:
+        if (self.output_dir is not None) and self._analysers is None:
             self._analysers = LazyAnalyserDict(self.output_dir, self.config)
         return self._analysers
+
 
     @analysers.deleter
     def analysers(self) -> None:
@@ -268,8 +272,8 @@ class _Ctx:
     ###
 
     @property
-    def results(self) -> LazyResultsDict:
-        if self._results is None:
+    def results(self) -> LazyResultsDict | None:
+        if (self.output_dir is not None) and self._results is None:
             self._results = LazyResultsDict(self.output_dir, self.config)
         return self._results
 
@@ -278,56 +282,3 @@ class _Ctx:
         if self._results is not None:
             self._results.clear()
             self._results = None
-    
-
-def _describe_context(ctx: _Ctx) -> None:
-    """Describe the context."""
-    from click import echo
-
-    with ctx:
-        echo("Current context:")
-
-        if "config" in ctx:
-            echo("> Config: Loaded!")
-        else:
-            echo("> Config: Not set!")
-
-        if "linelist" in ctx:
-            n = len(ctx.linelist)
-            echo(f"> Linelist: {n} rows.")
-        else:
-            echo("> Linelist: Not set!")
-
-        if "input_dir" in ctx:
-            n = len(ctx.input_dir.files)
-            echo(f"> Input directory: {ctx.input_dir.path!s} w/ {n} spectra.")
-        else:
-            echo("> Input directory: Not set!")
-        
-        if "output_dir" in ctx:
-            n = len(ctx.output_dir)
-            echo(f"> Output directory: {ctx.output_dir.path!s} w/ {n} subdirs.")
-        else:
-            echo("> Output directory: Not set!")
-
-        ###
-
-        if "spectra" in ctx:
-            echo(f"> Spectra: {len(ctx.spectra)} items.")
-        else:
-            echo("> Spectra: Not set!")
-
-        if "error_results" in ctx:
-            echo(f"> ErrorResults: {len(ctx.error_results)} items.")
-        else:
-            echo("> ErrorResults: Not set!")
-
-        if "analysers" in ctx:
-            echo(f"> Analysers: {len(ctx.analysers)} items.")
-        else:
-            echo("> Analysers: Not set!")
-
-        if "results" in ctx:
-            echo(f"> Results: {len(ctx.results)} items.")
-        else:
-            echo("> Results: Not set!")

@@ -5,7 +5,10 @@ from typing import Any, TypeVar
 
 from quasar_decrypt import Spectrum
 from quasar_errors.analysis import Analyser
-from quasar_errors.analysis.measure_result import FrozenMeasureResult
+from quasar_errors.analysis.measure_result import (
+    FrozenMeasureResult,
+    MeasureResult,
+)
 from quasar_errors.error_result import ErrorResult
 from quasar_utils.pipeline import OutputDir, SubDir
 from quasar_utils.setup import Info
@@ -30,14 +33,22 @@ class LazyDict(dict[K, V], ABC):
         super().__init__()
 
     def _subdir_helper(self, key: str) -> Path:
+        """Get the subdirectory path corresponding to the given key."""
         if key not in self._subdir_map:
             raise KeyError(f"SubDir does not exist for {key=}")
         return self._subdir_map[key]
 
     def _context_helper(self, key: str, check_exists: bool = False) -> Path:
+        """Get the context directory path corresponding to the given key.
+        
+        If `check_exists` is True, raise a KeyError if the directory does not 
+        exist.
+        """
         path = self._subdir_helper(key) / ".context"
         if check_exists and not path.is_dir():
-            raise KeyError(f"Context directory does not exist for {key=}")
+            raise KeyError(
+                f"Context directory does not exist for {key=}: {path=}"
+            )
         return path
 
     @abstractmethod
@@ -54,7 +65,8 @@ class LazyDict(dict[K, V], ABC):
 
     def __getitem__(self, key: K | SubDir) -> V:
         if isinstance(key, SubDir):
-            key = key.out_dir.stem
+            key = key.in_file.stem
+        key = key.removesuffix("_out")
 
         if key not in self:
             super().__setitem__(key, self._loader(key))
@@ -68,6 +80,13 @@ class LazyDict(dict[K, V], ABC):
     def clear(self) -> None:
         for key in list(self.keys()):
             self.__delitem__(key)
+
+
+    def get_length(self, output_dir: OutputDir) -> int:
+        return sum(
+            self._get_path(subdir.in_file.stem).exists()
+            for subdir in output_dir
+        )
 
 
 ###
@@ -87,21 +106,28 @@ class LazySpectrumDict(LazyDict[str, Spectrum]):
     ```
     """
     def _get_path(self, key: str, check_exists: bool = False) -> Path:
+        """Get the path to the spectrum directory for the given key.
+        
+        Raises a KeyError if `check_exists` is True and the directory does not 
+        exist.
+        """
         path = self._subdir_helper(key) / "spectrum"
         if check_exists and not path.is_dir():
             raise KeyError(f"Spectrum directory does not exist for {key=}")
         return path
     
     def _loader(self, key: str) -> Spectrum:
-        from quasar_decrypt.io import load_spectrum
+        """Load the Spectrum object for the given key."""
+        from quasar_io import load_spectrum
         path = self._get_path(key, check_exists=True)
         return load_spectrum(path, self._config) 
 
 
     def _saver(self, key: str, value: Spectrum) -> None:
-        from quasar_decrypt.io import dump_spectrum
+        """Save the Spectrum object for the given key."""
+        from quasar_io import dump_spectrum
         path = self._get_path(key)
-        dump_spectrum(path, value, force=True)
+        dump_spectrum(path, value, exist_ok=True)
 
 
 class LazyErrorResultDict(LazyDict[str, ErrorResult]):
@@ -119,21 +145,30 @@ class LazyErrorResultDict(LazyDict[str, ErrorResult]):
     ```
     """
     def _get_path(self, key: str, check_exists: bool = False) -> Path:
+        """Get the path to the ErrorResult directory for the given key.
+        
+        Raises a KeyError if `check_exists` is True and the directory does not 
+        exist.
+        """
         path = self._context_helper(key, check_exists=check_exists) / "error_result"
         if check_exists and not path.is_dir():
-            raise KeyError(f"ErrorResult directory does not exist for {key=}")
+            raise KeyError(
+                f"ErrorResult directory does not exist for {key=}: {path=}"
+            )
         return path
     
     def _loader(self, key: str) -> ErrorResult:
-        from quasar_errors.io.hdf5.error_result import load_error_result
+        """Load the ErrorResult object for the given key."""
+        from quasar_io import load_error_result
         path = self._get_path(key, check_exists=True)
         return load_error_result(path, self._config)
 
 
     def _saver(self, key: str, value: ErrorResult) -> None:
-        from quasar_errors.io.hdf5.error_result import dump_error_result
+        """Save the ErrorResult object for the given key."""
+        from quasar_io import dump_error_result
         path = self._get_path(key)
-        dump_error_result(path, value, self._config, force=True)
+        dump_error_result(path, value, self._config, exist_ok=True)
 
 
 class LazyAnalyserDict(LazyDict[str, Analyser]):
@@ -151,30 +186,41 @@ class LazyAnalyserDict(LazyDict[str, Analyser]):
     ```
     """
     def _get_path(self, key: str, check_exists: bool = False) -> Path:
+        """Get the path to the Analyser directory for the given key.
+        
+        Raises a KeyError if `check_exists` is True and the directory does not 
+        exist.
+        """
         path = self._context_helper(key, check_exists=check_exists) / "analyser"
         if check_exists and not path.is_dir():
-            raise KeyError(f"Analyser directory does not exist for {key=}")
+            raise KeyError(
+                f"Analyser directory does not exist for {key=}: {path=}"
+            )
         return path
 
     def _loader(self, key: str) -> Analyser:
-        from quasar_errors.io.hdf5.analyser import load_analyser
+        """Load the Analyser object for the given key."""
+        from quasar_io import load_analyser
         path = self._get_path(key, check_exists=True)
         return load_analyser(path, self._config)
 
 
     def _saver(self, key: str, value: Analyser) -> None:
-        from quasar_errors.io.hdf5.analyser import dump_analyser
+        """Save the Analyser object for the given key."""
+        from quasar_io import dump_analyser
         path = self._get_path(key)
-        dump_analyser(path, value, force=True)
+        dump_analyser(path, value, self._config, exist_ok=True)
 
 
-class LazyResultsDict(LazyDict[str, dict[str, FrozenMeasureResult]]):
+class LazyResultsDict(
+    LazyDict[str, dict[str, MeasureResult | FrozenMeasureResult]]
+):
     """
-    LazyDictionary for FrozenMeasureResult objects. 
+    LazyDictionary for MeasureResult and FrozenMeasureResult objects.
 
-    For a given `key`, the corresponding FrozenMeasureResult dictionary is loaded from disk 
-    assuming the following directory structure exists:
-
+    For a given `key`, the corresponding MeasureResult and FrozenMeasureResult 
+    dictionary is loaded from disk assuming the following directory structure 
+    exists:
     ```
     output_dir/
               <key>/
@@ -183,21 +229,31 @@ class LazyResultsDict(LazyDict[str, dict[str, FrozenMeasureResult]]):
     ```
     """
     def _get_path(self, key: str, check_exists: bool = False) -> Path:
-        path = self._context_helper(key, check_exists=check_exists) / "results.json"
-        if check_exists and not path.is_file():
-            raise KeyError(f"Results file does not exist for {key=}")
+        """
+        Raises a KeyError if `check_exists` is True and the file does not exist.
+        """
+        path = self._context_helper(key, check_exists=check_exists) / "measure_result_dict"
+        if check_exists and not path.is_dir():
+            raise KeyError(
+                f"Results file does not exist for {key=}: {path=}"
+            )
         return path 
     
-    def _loader(self, key: str) -> dict[str, FrozenMeasureResult]:
-        from quasar_errors.io.serialization.measure_result import (
-            load_measure_results,
-        )
+    def _loader(
+        self, 
+        key: str,
+    ) -> dict[str, MeasureResult | FrozenMeasureResult]:
+        """Load the (Frozen)MeasureResult dictionary for the given key."""
+        from quasar_io import load_measure_result_dict
         path = self._get_path(key, check_exists=True)
-        return load_measure_results(path)
+        return load_measure_result_dict(path)
 
-    def _saver(self, key: str, value: dict[str, FrozenMeasureResult]) -> None:
-        from quasar_errors.io.serialization.measure_result import (
-            dump_measure_results,
-        )
+    def _saver(
+        self, 
+        key: str, 
+        value: dict[str, MeasureResult | FrozenMeasureResult],
+    ) -> None:
+        """Save the (Frozen)MeasureResult dictionary for the given key."""
+        from quasar_io import dump_measure_result_dict
         path = self._get_path(key)
-        dump_measure_results(path, value)
+        dump_measure_result_dict(path, value, exist_ok=True)

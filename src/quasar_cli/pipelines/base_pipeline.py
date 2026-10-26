@@ -32,6 +32,8 @@ class BasePipeline(ABC):
         model_types = set()
 
         ### FIT CONTINUUM COMPONENTS
+
+        spectrum.truncateSpectrum()
     
         if self.host_first:
             if (self.config.host.fit) \
@@ -81,7 +83,7 @@ class BasePipeline(ABC):
 
         spectrum.fitLines(self.linelist)
 
-        # Final fit on the entire spectrum
+        # # Final fit on the entire spectrum
         spectrum.finaliseFit()
 
     def run(self) -> tuple[dict[str, Spectrum], None | list[str]]:
@@ -95,9 +97,7 @@ class BasePipeline(ABC):
                     spectrum = self._load_spectrum(subdir)
                     spectra[key] = spectrum
                 except Exception as exc:
-                    msgs.append(
-                        f"> [LOADING] {key}: {i=}, {exc=}"
-                    )
+                    msgs.append(f"> [LOADING] {key}: {i=}, {exc=}")
                     if self.fail_fast:
                         raise
                     return

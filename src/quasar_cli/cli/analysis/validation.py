@@ -1,7 +1,7 @@
 from math import isfinite
 
 from astropy.units import Unit
-from quasar_typing.misc import BackgroundFlux
+from quasar_typing.string_selections import BackgroundFlux
 
 from quasar_cli.cli.context import _Ctx
 

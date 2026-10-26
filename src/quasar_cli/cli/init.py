@@ -19,29 +19,23 @@ def _init(
         if verbose:
             click.echo(f"Initializing context @ {ctx.path!s}")
 
-        # CONFIG
-        if "config" in ctx:
-            if not force:
-                msg = "Config already exists!"
-                if fail_fast:
-                    raise ValueError(msg)
-                if verbose:
-                    click.echo(f"> {msg} Use -f/--force to overwrite.")
-            ctx.remove("config")
+        if "config" in ctx and not force:
+            msg = "Config already exists!"
+            if fail_fast:
+                raise ValueError(msg)
+            if verbose:
+                click.echo(f"> {msg} Use -f/--force to overwrite.")
         else:
             ctx.config = config
             if verbose:
                 click.echo("> Config set!")
 
-        # LINELIST
-        if "linelist" in ctx:
-            if not force:
-                msg = "Linelist already exists!"
-                if fail_fast:
-                    raise ValueError(msg)
-                if verbose:
-                    click.echo(f"> {msg} Use -f/--force to overwrite.")
-            ctx.remove("linelist")
+        if "linelist" in ctx and not force:
+            msg = "Linelist already exists!"
+            if fail_fast:
+                raise ValueError(msg)
+            if verbose:
+                click.echo(f"> {msg} Use -f/--force to overwrite.")
         else:
             ctx.linelist = linelist
             if verbose:

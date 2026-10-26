@@ -27,7 +27,7 @@ def _prepare_run(
     """
     input_path = Path(input_path).resolve()
     try:
-        input_dir = InputDir(input_path)
+        input_dir = InputDir.create(input_path)
         if verbose:
             click.echo(f"> Instantiated `InputDir` from: {input_path!s}")
     except Exception:
@@ -37,7 +37,7 @@ def _prepare_run(
 
     output_path = Path(output_path).resolve()
     try:
-        output_dir = OutputDir(
+        output_dir = OutputDir.create(
             input_dir, 
             path=output_path,
             dangerous=clear_existing,

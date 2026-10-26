@@ -1,9 +1,9 @@
+import shutil
 from pathlib import Path
-from shutil import copyfile
 
 import click
-from pydantic import ValidationError
-from quasar_utils.setup import Info
+from pydantic import TypeAdapter, ValidationError
+from quasar_typing.pathlib import AnyDirPath
 
 from ..utils import DefaultPaths
 
@@ -14,6 +14,8 @@ def _create_config(
     verbose: bool,
 ) -> None:
     """Create a new config file (JSON) at the specified path."""
+    from quasar_utils.setup import Info
+    
     path: Path = Path(config).resolve()
 
     if verbose:
@@ -52,7 +54,7 @@ def _create_linelist(
 
     try:
         path.unlink(missing_ok=True)
-        copyfile(DefaultPaths.linelist, path)
+        shutil.copyfile(DefaultPaths.linelist, path)
     except ValueError as e:
         if verbose:
             click.echo(f"> Failed to copy linelist file with error: {e}")
@@ -81,7 +83,7 @@ def _create_lookup(
 
     try:
         path.unlink(missing_ok=True)
-        copyfile(DefaultPaths.lookup, path)
+        shutil.copyfile(DefaultPaths.lookup, path)
     except ValueError as e:
         if verbose:
             click.echo(f"> Failed to copy lookup file with error: {e}")
@@ -100,7 +102,7 @@ def _create_workspace(
     Create a new workspace directory with default config (JSON), linelist (CSV), 
     and lookup (CSV) files.
     """
-    path: Path = Path(workspace).resolve()
+    path = TypeAdapter(AnyDirPath).validate_python(workspace)
 
     if verbose:
         click.echo(f"Creating workspace at: {path!s}")
@@ -108,6 +110,16 @@ def _create_workspace(
         if verbose:
             click.echo("> Workspace path should be a directory, not a file.")
         raise NotADirectoryError(path)
+
+    if path.exists():
+        if not force:
+            if verbose:
+                click.echo(
+                    "> Workspace already exists! "
+                    "Use '-f' or '--force' to replace it."
+                )
+            raise FileExistsError(path)
+        shutil.rmtree(path)
 
     path.mkdir(parents=True, exist_ok=True)
     _create_config(path / "config.json", force, verbose)

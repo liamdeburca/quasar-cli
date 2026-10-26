@@ -32,6 +32,9 @@ dev = [
     "isort",
 ]
 
+[tool.setuptools.package-data]
+quasar_cli = ["data/linelist.csv", "data/lookup.csv"]
+
 [project.scripts]
 quasar-cli = "quasar_cli.cli.main:cli"
 

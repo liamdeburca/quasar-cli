@@ -17,34 +17,43 @@ from quasar_cli.cli.options import (
 
 
 @click.group()
-@click.pass_context
-def cli(context: click.Context):
-    """Ensure that a context object is set."""
-    from quasar_cli.cli.context import _Ctx
-    context.ensure_object(_Ctx)
+def cli():
+    pass
 
 
 @cli.command("init")
 @Options.chain("config", "linelist")
 @Flags.chain("verbose", "force", "fail_fast")
-@click.pass_obj
+@click.pass_context
 def cli_init(
-    ctx: object,
+    context: click.Context,
     config: str,
     linelist: str,
     verbose: bool,
     force: bool,
     fail_fast: bool
 ):
+    """Ensure that a context object is set."""
+    from quasar_cli.cli.context import _Ctx
+
     from .init import _init
-    _init(ctx, config, linelist, verbose, force, fail_fast)
+
+    _init(
+        context.ensure_object(_Ctx), 
+        config, 
+        linelist, 
+        verbose, 
+        force, 
+        fail_fast,
+    )
 
 
 @cli.command("describe-context")
-@click.pass_obj
-def cli_describe_context(ctx: object):
-    from quasar_cli.cli.context import _describe_context
-    _describe_context(ctx)
+@click.pass_context
+def cli_describe_context(context: click.Context):
+    """Ensure that a context object is set."""
+    from quasar_cli.cli.context import _Ctx, _describe_context
+    _describe_context(context.ensure_object(_Ctx))
 
 ### Create
 
@@ -137,10 +146,11 @@ def cli_parse_linelist(linelist: str, config: str, verbose: bool) -> None:
 ### Running the pipeline
 
 @cli.group()
-@click.pass_obj
-def run(ctx: object):
-    """Validate that the context object is ready."""
-    # runtime validation will be performed by the concrete run commands
+@click.pass_context
+def run(context: click.Context):
+    from quasar_cli.cli.context import _Ctx
+    context.ensure_object(_Ctx)
+
 
 @run.command("sdss")
 @PathArguments.input_path()
@@ -165,6 +175,7 @@ def run_sdss(
     fail_fast: bool,
 ) -> None:
     from .run import _run_sdss
+    
     _run_sdss(
         ctx=ctx,
         input_path=input_path,
@@ -208,11 +219,10 @@ def run_paqs(
 ### Plotting
 
 @cli.group()
-@click.pass_obj
-def plot(ctx: object):
-    # validation will be performed by the concrete plot command implementation
-    # which we import lazily when the command runs.
-    pass
+@click.pass_context
+def plot(context: click.Context):
+    from quasar_cli.cli.context import _Ctx
+    context.ensure_object(_Ctx)
 
 @plot.group()
 def spectrum():
@@ -237,7 +247,10 @@ def cli_spectrum_quick(
     verbose: bool,
     fail_fast: bool,
 ):
-    from .plot import _spectrum_quick
+    from quasar_cli.cli.context import _validate_context
+    from quasar_cli.cli.plot import _spectrum_quick
+
+    _validate_context(ctx, "output_dir")
     _spectrum_quick(
         ctx=ctx,
         name=name,
@@ -272,7 +285,10 @@ def cli_spectrum_difference(
     verbose: bool,
     fail_fast: bool,
 ):
-    from .plot import _spectrum_difference
+    from quasar_cli.cli.context import _validate_context
+    from quasar_cli.cli.plot import _spectrum_difference
+        
+    _validate_context(ctx, "output_dir")
     _spectrum_difference(
         ctx=ctx,
         name=name,
@@ -308,7 +324,10 @@ def cli_powerlaw_windows(
     verbose: bool,
     fail_fast: bool,
 ):
-    from .plot import _powerlaw_windows
+    from quasar_cli.cli.context import _validate_context
+    from quasar_cli.cli.plot import _powerlaw_windows
+        
+    _validate_context(ctx, "output_dir")
     _powerlaw_windows(
         ctx=ctx,
         name=name,
@@ -344,7 +363,10 @@ def cli_iron_windows(
     verbose: bool,
     fail_fast: bool,
 ):
-    from .plot import _iron_windows
+    from quasar_cli.cli.context import _validate_context
+    from quasar_cli.cli.plot import _iron_windows
+        
+    _validate_context(ctx, "output_dir")
     _iron_windows(
         ctx=ctx,
         name=name,
@@ -380,7 +402,10 @@ def cli_balmer_windows(
     verbose: bool,
     fail_fast: bool,
 ):
-    from .plot import _balmer_windows
+    from quasar_cli.cli.context import _validate_context
+    from quasar_cli.cli.plot import _balmer_windows
+        
+    _validate_context(ctx, "output_dir")
     _balmer_windows(
         ctx=ctx,
         name=name,
@@ -416,7 +441,10 @@ def cli_host_windows(
     verbose: bool,
     fail_fast: bool,
 ):
-    from .plot import _host_windows
+    from quasar_cli.cli.context import _validate_context
+    from quasar_cli.cli.plot import _host_windows
+        
+    _validate_context(ctx, "output_dir")
     _host_windows(
         ctx=ctx,
         name=name,
@@ -452,7 +480,10 @@ def cli_iron_templates(
     verbose: bool,
     fail_fast: bool,
 ):
-    from .plot import _iron_templates
+    from quasar_cli.cli.context import _validate_context
+    from quasar_cli.cli.plot import _iron_templates
+        
+    _validate_context(ctx, "output_dir")
     _iron_templates(
         ctx=ctx,
         name=name,
@@ -488,7 +519,10 @@ def cli_balmer_templates(
     verbose: bool,
     fail_fast: bool,
 ):
-    from .plot import _balmer_templates
+    from quasar_cli.cli.context import _validate_context
+    from quasar_cli.cli.plot import _balmer_templates
+        
+    _validate_context(ctx, "output_dir")
     _balmer_templates(
         ctx=ctx,
         name=name,
@@ -524,7 +558,10 @@ def cli_host_templates(
     verbose: bool,
     fail_fast: bool,
 ):
-    from .plot import _host_templates
+    from quasar_cli.cli.context import _validate_context
+    from quasar_cli.cli.plot import _host_templates
+        
+    _validate_context(ctx, "output_dir")
     _host_templates(
         ctx=ctx,
         name=name,
@@ -542,10 +579,10 @@ def cli_host_templates(
 ### Bootstrapping
 
 @cli.group()
-@click.pass_obj
-def bootstrap(ctx: object):
-    # concrete implementations will validate the context lazily when run
-    pass
+@click.pass_context
+def bootstrap(context: click.Context):
+    from quasar_cli.cli.context import _Ctx
+    context.ensure_object(_Ctx)
 
 
 @bootstrap.command("spectrum")
@@ -564,7 +601,10 @@ def cli_spectrum_bootstrap(
     force: bool,
     fail_fast: bool,
 ) -> None:
-    from .bootstrap import _spectrum_bootstrap
+    from quasar_cli.cli.bootstrap import _spectrum_bootstrap
+    from quasar_cli.cli.context import _validate_context
+        
+    _validate_context(ctx, "output_dir")
     _spectrum_bootstrap(
         ctx=ctx,
         mtypes=mtypes,
@@ -594,7 +634,10 @@ def cli_standard_bootstrap(
     force: bool,
     fail_fast: bool,
 ) -> None:
-    from .bootstrap import _standard_bootstrap
+    from quasar_cli.cli.bootstrap import _standard_bootstrap
+    from quasar_cli.cli.context import _validate_context
+    
+    _validate_context(ctx, "output_dir")
     _standard_bootstrap(
         ctx=ctx,
         mtypes=mtypes,
@@ -610,18 +653,25 @@ def cli_standard_bootstrap(
 ### Analysis
 
 @cli.group()
-@click.pass_obj
-def analysis(ctx: object):
-    # validation will be performed by the concrete analysis commands
-    pass
+@click.pass_context
+def analysis(context: click.Context):
+    from quasar_cli.cli.context import _Ctx
+    context.ensure_object(_Ctx)
 
 
-@analysis.command("init")
+@analysis.command("isolate")
+@AnalysisOptions.chain("pattern", "line", "wave", "v_int", "ipv_int", "dx_int")
 @Options.chain("start", "stop")
 @Flags.chain("verbose", "progress", "force", "fail_fast")
 @click.pass_obj
-def cli_analysis_init(
+def analysis_isolate(
     ctx: object,
+    pattern: tuple[str, ...],
+    line: tuple[str, ...],
+    wave: tuple[float, ...],
+    v_int: float,
+    ipv_int: float,
+    dx_int: float,
     start: int,
     stop: int,
     verbose: bool,
@@ -629,9 +679,18 @@ def cli_analysis_init(
     force: bool,
     fail_fast: bool,
 ) -> None:
-    from .analysis import _analysis_init
-    _analysis_init(
+    from quasar_cli.cli.analysis import _analysis_isolate
+    from quasar_cli.cli.context import _validate_context
+    
+    _validate_context(ctx, "output_dir")
+    _analysis_isolate(
         ctx=ctx,
+        pattern=pattern,
+        line=line,
+        wave=wave,
+        v_int=v_int,
+        ipv_int=ipv_int,
+        dx_int=dx_int,
         start=start,
         stop=stop,
         verbose=verbose,
@@ -641,74 +700,197 @@ def cli_analysis_init(
     )
 
 
-@analysis.command("isolate")
-@AnalysisOptions.chain("pattern", "line", "wave", "v_int", "ipv_int", "dx_int")
-@Flags.chain("verbose", "progress", "force", "fail_fast")
-@click.pass_obj
-def cli_analysis_isolate(
-    ctx: object,
-    pattern: tuple[str, ...],
-    line: tuple[str, ...],
-    wave: tuple[float, ...],
-    v_int: float,
-    ipv_int: float,
-    dx_int: float,
-    verbose: bool,
-    progress: bool,
-    force: bool,
-    fail_fast: bool,
-) -> None:
-    from .analysis import _analysis_isolate
-    _analysis_isolate(
-        ctx=ctx,
-        pattern=pattern,
-        line=line,
-        wave=wave,
-        v_int=v_int,
-        ipv_int=ipv_int,
-        dx_int=dx_int,
-        verbose=verbose,
-        progress=progress,
-        force=force,
-        fail_fast=fail_fast,
-    )
-
-
-@analysis.command("exit")
-@click.pass_obj
-def cli_analysis_exit(ctx: object) -> None:
-    from .analysis import _analysis_exit
-    _analysis_exit(ctx)
-
-
-@analysis.group()
-@click.pass_context
-def measure(ctx: click.Context):
-    pass
-
-@measure.command("mode-off")
+@analysis.command("measure-cen")
 @MeasureArguments.name()
 @MeasureOptions.chain("bg", "unit")
+@Options.chain("start", "stop")
 @MeasureFlags.from_model()
 @Flags.chain("verbose", "force", "progress", "fail_fast")
 @click.pass_obj
-def measure_mode_off(
+def measure_cen(
     ctx: object,
     name: str,
     bg: tuple[str, ...],
     unit: str,
+    start: int,
+    stop: int,
     from_model: bool,
     verbose: bool,
     force: bool,
     progress: bool,
     fail_fast: bool,
 ) -> None:
-    from .analysis.measure import _mode_off
-    _mode_off(
+    from quasar_cli.cli.analysis import _cen
+    from quasar_cli.cli.context import _validate_context
+    
+    _validate_context(ctx, "output_dir")
+    _cen(
         ctx=ctx,
         name=name,
         bg=bg,
         unit=unit,
+        start=start,
+        stop=stop,
+        from_model=from_model,
+        verbose=verbose,
+        force=force,
+        progress=progress,
+        fail_fast=fail_fast,
+    )
+
+
+@analysis.command("measure-ew")
+@MeasureArguments.name()
+@MeasureOptions.unit()
+@Options.chain("start", "stop")
+@MeasureFlags.from_model()
+@Flags.chain("verbose", "force", "progress", "fail_fast")
+@click.pass_obj
+def measure_ew(
+    ctx: object,
+    name: str,
+    unit: str,
+    start: int,
+    stop: int,
+    from_model: bool,
+    verbose: bool,
+    force: bool,
+    progress: bool,
+    fail_fast: bool,
+) -> None:
+    from quasar_cli.cli.analysis import _ew
+    from quasar_cli.cli.context import _validate_context
+    
+    _validate_context(ctx, "output_dir")
+    _ew(
+        ctx=ctx,
+        name=name,
+        unit=unit,
+        start=start,
+        stop=stop,
+        from_model=from_model,
+        verbose=verbose,
+        force=force,
+        progress=progress,
+        fail_fast=fail_fast,
+    )
+
+
+@analysis.command("measure-fwhm-vel")
+@MeasureArguments.chain("h", "name")
+@MeasureOptions.chain("bg", "unit")
+@Options.chain("start", "stop")
+@MeasureFlags.from_model()
+@Flags.chain("verbose", "force", "progress", "fail_fast")
+@click.pass_obj
+def measure_fwhm_vel(
+    ctx: object,
+    h: float,
+    name: str,
+    bg: tuple[str, ...],
+    unit: str,
+    start: int,
+    stop: int,
+    from_model: bool,
+    verbose: bool,
+    force: bool,
+    progress: bool,
+    fail_fast: bool,
+) -> None:
+    from quasar_cli.cli.analysis import _fwhm_vel
+    from quasar_cli.cli.context import _validate_context
+    
+    _validate_context(ctx, "output_dir")
+    _fwhm_vel(
+        ctx=ctx,
+        h=h,
+        name=name,
+        bg=bg,
+        unit=unit,
+        start=start,
+        stop=stop,
+        from_model=from_model,
+        verbose=verbose,
+        force=force,
+        progress=progress,
+        fail_fast=fail_fast,
+    )
+
+
+@analysis.command("measure-lum")
+@MeasureArguments.chain("lb", "ub", "name")
+@MeasureOptions.chain("bg", "unit")
+@Options.chain("start", "stop")
+@MeasureFlags.from_model()
+@Flags.chain("verbose", "force", "progress", "fail_fast")
+@click.pass_obj
+def measure_lum(
+    ctx: object,
+    lb: float,
+    ub: float,
+    name: str,
+    bg: tuple[str, ...],
+    unit: str,
+    start: int,
+    stop: int,
+    from_model: bool,
+    verbose: bool,
+    force: bool,
+    progress: bool,
+    fail_fast: bool,
+) -> None:
+    from quasar_cli.cli.analysis import _lum
+    from quasar_cli.cli.context import _validate_context
+    
+    _validate_context(ctx, "output_dir")
+    _lum(
+        ctx=ctx,
+        lb=lb,
+        ub=ub,
+        name=name,
+        bg=bg,
+        unit=unit,
+        start=start,
+        stop=stop,
+        from_model=from_model,
+        verbose=verbose,
+        force=force,
+        progress=progress,
+        fail_fast=fail_fast,
+    )
+
+
+@analysis.command("measure-strength")
+@MeasureArguments.name()
+@MeasureOptions.chain("bg", "unit")
+@Options.chain("start", "stop")
+@MeasureFlags.from_model()
+@Flags.chain("verbose", "force", "progress", "fail_fast")
+@click.pass_obj
+def measure_strength(
+    ctx: object,
+    name: str,
+    bg: tuple[str, ...],
+    unit: str,
+    start: int,
+    stop: int,
+    from_model: bool,
+    verbose: bool,
+    force: bool,
+    progress: bool,
+    fail_fast: bool,
+) -> None:
+    from quasar_cli.cli.analysis import _strength
+    from quasar_cli.cli.context import _validate_context
+    
+    _validate_context(ctx, "output_dir")
+    _strength(
+        ctx=ctx,
+        name=name,
+        bg=bg,
+        unit=unit,
+        start=start,
+        stop=stop,
         from_model=from_model,
         verbose=verbose,
         force=force,
@@ -723,9 +905,9 @@ def measure_mode_off(
 @Arguments.fname(nargs=-1)
 @Options.chain("start", "stop")
 @Flags.chain("progress", "verbose", "force", "fail_fast")
-@click.pass_obj
+@click.pass_context
 def concat(
-    ctx: object,
+    context: click.Context,
     fname: str,
     # Options
     start: int,
@@ -736,7 +918,11 @@ def concat(
     force: bool,
     fail_fast: bool,
 ) -> None:
-    from .concat import _concat
+    from quasar_cli.cli.concat import _concat
+    from quasar_cli.cli.context import _Ctx, _validate_context
+    
+    ctx = context.ensure_object(_Ctx)
+    _validate_context(ctx, "output_dir")
     _concat(
         ctx=ctx,
         fname=fname,

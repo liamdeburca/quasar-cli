@@ -55,7 +55,7 @@ def _concat_helper(
 
         msgs = ["Failed to concatentate:"]
         def func(i: int, subdir: SubDir) -> None:
-            src = subdir._out_dir / "plots" / fname
+            src = subdir.out_dir / "plots" / fname
             if not src.exists():
                 msgs.append(f"> Source does not exist: {src!s}")
                 if fail_fast:

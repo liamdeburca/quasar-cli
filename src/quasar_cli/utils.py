@@ -1,12 +1,9 @@
-import pickle
 from collections.abc import Callable, Iterable
 from pathlib import Path
-from typing import ClassVar, TypeVar
+from typing import ClassVar
 
 import click
-from quasar_decrypt import Spectrum
 from quasar_utils.pipeline import OutputDir, SubDir
-from tqdm import tqdm
 
 _this_file: Path = Path(__file__).resolve()
 
@@ -15,16 +12,18 @@ class DefaultPaths:
     linelist: ClassVar[Path] = _this_file.parent / "data/linelist.csv"
     lookup: ClassVar[Path] = _this_file.parent / "data/lookup.csv"
 
-def _get_output_dir(output_path: str | Path) -> OutputDir:
+def _get_output_dir(output_path: str | Path):
+
     output_path: Path = Path(output_path).resolve()
     if output_path.stem.endswith("_out") and output_path.is_dir():
         output_path = output_path.parent
+        
     return OutputDir.resume(output_path)
 
 def _get_subdirs(output_path: str | Path) -> list[SubDir]:
     output_path: Path = Path(output_path).resolve()
     if output_path.stem.endswith("_out") and output_path.is_dir():
-        filter_func = lambda s: s._out_dir.stem == output_path.stem
+        filter_func = lambda s: s.out_dir.stem == output_path.stem
     else:
         filter_func = lambda s: True
 
@@ -45,21 +44,26 @@ def _get_subdir_paths(output_path: str | Path) -> list[Path]:
         key=lambda p: p.stem,
     )
 
-def _get_spectrum(subdir: SubDir, verbose: bool) -> Spectrum:
+def _get_spectrum(subdir: SubDir, verbose: bool):
+    from quasar_decrypt import Spectrum
+
     spectrum_path = subdir.out_dir / "spectrum.pkl"
+    if not spectrum_path.exists():
+        if verbose: 
+            click.echo(f"Spectrum file does not exist at: {spectrum_path!s}")
+        raise FileNotFoundError(spectrum_path)
+    
     try:
         spectrum = Spectrum.load(spectrum_path)
         if verbose:
             click.echo(f"Loaded spectrum: {spectrum.title}")
         return spectrum
-    except Exception:
+    except Exception as exc:
         msg = f"Failed to load spectrum at: {spectrum_path!s}!"
         if verbose:
             click.echo(msg)
-        raise ValueError(msg)
+        raise ValueError(msg) from exc
 
-P = TypeVar("P")
-R = TypeVar("R")
 
 def _map[P, R](
     func: Callable[[int, P], R], 
@@ -71,6 +75,8 @@ def _map[P, R](
     desc_func: Callable[[P], str] | None = None,
     **kwargs,
 ) -> list[R]:
+    from tqdm import tqdm
+
     kwargs["disable"] = not progress
     loop = tqdm(iterable, **kwargs)
     out: list[R] = []

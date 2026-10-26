@@ -1,7 +1,8 @@
 from pathlib import Path
 
 import click
-from quasar_typing.misc import DataTypes, ModelTypes, Variant
+from quasar_typing.literals import Variant
+from quasar_typing.string_selections import DataTypes, ModelTypes
 
 from quasar_cli.cli.context import _Ctx
 from quasar_cli.utils import _map
@@ -81,7 +82,7 @@ def _bootstrap_helper(
                         tqdm_leave=False,
                     )
                 except Exception as exc:
-                    msg = f"[INIT] {subdir.in_file.stem}: {i=}, {exc=}"
+                    msg: str = f"[INIT] {subdir.in_file.stem}: {i=}, {exc=}"
                     msgs.append(f"> {msg}")
                     if fail_fast:
                         raise ValueError(msg) from exc
@@ -90,7 +91,7 @@ def _bootstrap_helper(
                 try:
                     samples = bootstrapper.run()
                 except Exception as exc:
-                    msg = f"[RUN] {subdir.in_file.stem}: {i=}, {exc=}"
+                    msg: str = f"[RUN] {subdir.in_file.stem}: {i=}, {exc=}"
                     msgs.append(f"> {msg}")
                     if fail_fast:
                         raise ValueError(msg) from exc
@@ -99,7 +100,7 @@ def _bootstrap_helper(
                 try:
                     error_result = bootstrapper.toErrorResult(samples)
                 except Exception as exc:
-                    msg = f"[ERROR RESULT] {subdir.in_file.stem}: {i=}, {exc=}"
+                    msg: str = f"[ERROR RESULT] {subdir.in_file.stem}: {i=}, {exc=}"
                     msgs.append(f"> {msg}")
                     if fail_fast:
                         raise ValueError(msg) from exc
