@@ -1,35 +1,35 @@
 [build-system]
-requires = ["setuptools>=45", "wheel"]
+requires = [
+    "wheel", 
+    "setuptools==72.1.0",
+]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "quasar_cli"
+name = "quasar-cli"
+authors = [{name = "Liam", email = "liam_deburca@me.com"}]
 version = "0.1.0"
-description = "CLI interface of the QUASAR framework"
 readme = "README.md"
 requires-python = ">=3.12"
-
-authors = [
-    {name = "Liam", email = "liam_deburca@me.com"}
-]
-keywords = ["quasar", "spectral", "models", "emission-lines"]
 classifiers = [
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.12",
-    "License :: OSI Approved :: MIT License",
-    "Operating System :: OS Independent",
 ]
 dependencies = [
-    "click >= 8.0",
-    "quasar-decrypt",
+    "quasar-io==0.1.0",
+
+    "pydantic==2.12",
+    "lazy-imports==1.2.0",
+    "click==8.5.0",
+    "scienceplots==2.2.2",
 ]
 
 [project.optional-dependencies]
 dev = [
-    "pytest>=7.0",
-    "pytest-cov",
-    "black",
-    "isort",
+    "pytest==9.1.1",
+    "pytest-cov==7.1.0",
+    "black==26.10.1",
+    "isort==9.0.2",
 ]
 
 [tool.setuptools.package-data]

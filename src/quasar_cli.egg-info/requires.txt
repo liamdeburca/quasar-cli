@@ -1,8 +1,0 @@
-click>=8.0
-quasar-decrypt
-
-[dev]
-pytest>=7.0
-pytest-cov
-black
-isort
